@@ -1,0 +1,13 @@
+# Credenciais nunca vão para o repositório
+.env*
+*.p8
+*.pem
+*service-account*.json
+credenciais/
+
+# Painel é gerado e publicado pelo Action
+site/
+
+__pycache__/
+.pytest_cache/
+.venv/

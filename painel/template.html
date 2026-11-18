@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel das lojas</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --up: #006300;
+    --down: #d03b3b;
+    --apple: #2a78d6;
+    --google: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #f0efec;
+      --ink-2: #c3c2b7;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --up: #0ca30c;
+      --down: #e66767;
+      --apple: #3987e5;
+      --google: #d95926;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --up: #0ca30c;
+    --down: #e66767;
+    --apple: #3987e5;
+    --google: #d95926;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 15px; margin: 0 0 12px; font-weight: 600; }
+  .sub { color: var(--ink-2); font-size: 13px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  /* Senha */
+  #gate { max-width: 360px; margin: 12vh auto 0; display: grid; gap: 12px; }
+  #gate input[type=password] {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--ink);
+    background: var(--page); border: 1px solid var(--axis); border-radius: 8px;
+  }
+  button {
+    font: inherit; padding: 10px 14px; border-radius: 8px; border: 0;
+    background: var(--ink); color: var(--surface); cursor: pointer;
+  }
+  .check { display: flex; gap: 8px; align-items: center; color: var(--ink-2); font-size: 14px; }
+  .error { color: var(--down); font-size: 14px; min-height: 1.4em; }
+  /* Painel */
+  header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  select {
+    font: inherit; padding: 8px 10px; border-radius: 8px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--axis); min-height: 40px;
+  }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
+  .tile .label { color: var(--ink-2); font-size: 13px; }
+  .tile .value { font-size: 30px; font-weight: 600; margin: 2px 0; }
+  .tile .note { font-size: 13px; color: var(--muted); }
+  .delta-up { color: var(--up); }
+  .delta-down { color: var(--down); }
+  .grid2 { display: grid; gap: 12px; margin-bottom: 12px; }
+  .legend { display: flex; gap: 16px; font-size: 13px; color: var(--ink-2); margin: -4px 0 8px; }
+  .legend span::before {
+    content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+    margin-right: 6px; background: var(--c); vertical-align: -1px;
+  }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; height: 240px; overflow: visible; }
+  .chart text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .chart .direct { font-size: 12px; fill: var(--ink-2); }
+  .tip {
+    position: absolute; pointer-events: none; display: none; z-index: 2;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.12); white-space: nowrap;
+  }
+  .tip b { display: block; margin-bottom: 2px; }
+  .tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+  .empty { color: var(--muted); padding: 48px 0; text-align: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-wrap { overflow-x: auto; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+  .foot { margin-top: 16px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .link { background: none; color: var(--ink-2); padding: 0; text-decoration: underline; font-size: 13px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <form id="gate" class="card" autocomplete="on">
+    <h1>Painel das lojas</h1>
+    <div class="sub">Os dados estão criptografados. Digite a senha para abrir.</div>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="Senha" aria-label="Senha" required>
+    <label class="check"><input id="remember" type="checkbox"> Lembrar neste aparelho</label>
+    <button type="submit" id="open">Abrir</button>
+    <div class="error" id="err" role="alert"></div>
+  </form>
+
+  <section id="app" hidden>
+    <header>
+      <h1>Painel das lojas</h1>
+      <div class="sub" id="updated"></div>
+    </header>
+
+    <div class="filters">
+      <select id="f-period" aria-label="Período">
+        <option value="7">Últimos 7 dias</option>
+        <option value="30" selected>Últimos 30 dias</option>
+        <option value="90">Últimos 90 dias</option>
+        <option value="365">Últimos 12 meses</option>
+      </select>
+      <select id="f-store" aria-label="Loja">
+        <option value="">Todas as lojas</option>
+        <option value="apple">App Store</option>
+        <option value="google">Google Play</option>
+      </select>
+      <select id="f-app" aria-label="App"></select>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2 id="dl-title">Downloads</h2>
+        <div class="legend" id="dl-legend"></div>
+        <div class="chart" id="dl-chart"></div>
+      </div>
+      <div class="card">
+        <h2 id="rev-title">Receita</h2>
+        <div class="filters" style="margin-bottom:8px">
+          <select id="f-currency" aria-label="Moeda"></select>
+        </div>
+        <div class="legend" id="rev-legend"></div>
+        <div class="chart" id="rev-chart"></div>
+        <div class="sub" style="margin-top:8px">App Store: valor líquido (proceeds). Google Play: valor bruto cobrado do cliente.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Por app no período</h2>
+      <div class="table-wrap"><table id="by-app"></table></div>
+    </div>
+
+    <div class="foot">
+      <span class="sub">Dados das lojas chegam com 1–2 dias de atraso; a coleta recoleta os últimos 7 dias.</span>
+      <button class="link" id="logout" type="button">Sair e esquecer senha</button>
+    </div>
+  </section>
+</main>
+
+<script>
+const BLOB = /*__DADOS__*/null;
+const STORES = {
+  apple: { name: "App Store", color: "var(--apple)" },
+  google: { name: "Google Play", color: "var(--google)" },
+};
+const nf = new Intl.NumberFormat("pt-BR");
+const money = (v, cur) => {
+  try { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: cur }).format(v); }
+  catch { return `${cur} ${nf.format(v)}`; }
+};
+const KEY = "painel-lojas-senha";
+const store = {
+  get() { try { return localStorage.getItem(KEY); } catch { return null; } },
+  set(v) { try { localStorage.setItem(KEY, v); } catch {} },
+  clear() { try { localStorage.removeItem(KEY); } catch {} },
+};
+
+// ---------- Decifrar (PBKDF2-SHA256 → AES-GCM, mesmo formato do coletor/cofre.py)
+async function decrypt(blob, password) {
+  const b = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: b(blob.salt), iterations: blob.iter, hash: "SHA-256" },
+    base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b(blob.iv) }, key, b(blob.data));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+async function unlock(password, remember) {
+  const err = document.getElementById("err");
+  const btn = document.getElementById("open");
+  if (!BLOB) { err.textContent = "Este painel ainda não tem dados."; return; }
+  if (!window.crypto?.subtle) { err.textContent = "Este navegador bloqueou a decifragem aqui. Abra pelo link https do painel."; return; }
+  btn.disabled = true; btn.textContent = "Abrindo…"; err.textContent = "";
+  let data;
+  try {
+    data = await decrypt(BLOB, password);
+  } catch {
+    store.clear();
+    err.textContent = "Senha incorreta.";
+    return;
+  } finally {
+    btn.disabled = false; btn.textContent = "Abrir";
+  }
+  if (remember) store.set(password);
+  start(data);
+}
+
+document.getElementById("gate").addEventListener("submit", e => {
+  e.preventDefault();
+  unlock(document.getElementById("pw").value, document.getElementById("remember").checked);
+});
+document.getElementById("logout").addEventListener("click", () => { store.clear(); location.reload(); });
+const saved = store.get();
+if (saved) unlock(saved, true);
+
+// ---------- Datas
+const day = iso => new Date(iso + "T00:00:00Z");
+const iso = d => d.toISOString().slice(0, 10);
+const addDays = (s, n) => { const d = day(s); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
+const fmtDay = s => day(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", timeZone: "UTC" }).replace(".", "");
+const weekStart = s => { const d = day(s); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return iso(d); };
+
+// ---------- Estado
+let ROWS = [];
+let LAST = null;
+let FIRST = null;
+let HAS_PREV = false; // o histórico cobre todo o período anterior? Senão a variação engana.
+
+function start(data) {
+  ROWS = data.registros.map(([date, storeId, app, metric, value, currency]) => ({ date, store: storeId, app, metric, value, currency }));
+  LAST = ROWS.reduce((m, r) => (r.date > m ? r.date : m), "");
+  FIRST = ROWS.reduce((m, r) => (r.date < m ? r.date : m), LAST);
+  const upd = new Date(data.atualizado_em.replace("Z", ":00Z"));
+  document.getElementById("updated").textContent =
+    `Atualizado em ${upd.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}` +
+    (LAST ? ` · dados até ${fmtDay(LAST)}` : "");
+
+  const apps = [...new Set(ROWS.map(r => r.app))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  document.getElementById("f-app").innerHTML =
+    `<option value="">Todos os apps</option>` + apps.map(a => `<option>${esc(a)}</option>`).join("");
+
+  for (const id of ["f-period", "f-store", "f-app", "f-currency"]) {
+    document.getElementById(id).addEventListener("change", render);
+  }
+  window.addEventListener("resize", () => { clearTimeout(window.__r); window.__r = setTimeout(render, 150); });
+
+  document.getElementById("gate").hidden = true;
+  document.getElementById("app").hidden = false;
+  render();
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function filtered(from, to) {
+  const s = document.getElementById("f-store").value;
+  const a = document.getElementById("f-app").value;
+  return ROWS.filter(r => r.date >= from && r.date <= to && (!s || r.store === s) && (!a || r.app === a));
+}
+
+function sum(rows) { return rows.reduce((t, r) => t + r.value, 0); }
+
+// ---------- Render
+function render() {
+  if (!LAST) {
+    document.getElementById("tiles").innerHTML = `<div class="card empty">Ainda sem dados coletados.</div>`;
+    return;
+  }
+  const period = +document.getElementById("f-period").value;
+  const to = LAST, from = addDays(LAST, -(period - 1));
+  const prevTo = addDays(from, -1), prevFrom = addDays(prevTo, -(period - 1));
+  const rows = filtered(from, to);
+  const prev = filtered(prevFrom, prevTo);
+  HAS_PREV = FIRST <= prevFrom;
+  const weekly = period > 90;
+
+  // Moedas presentes no período (a mais relevante primeiro)
+  const curTotals = {};
+  for (const r of rows) if (r.metric === "receita") curTotals[r.currency] = (curTotals[r.currency] || 0) + r.value;
+  const currencies = Object.keys(curTotals).sort((a, b) => curTotals[b] - curTotals[a]);
+  const curSel = document.getElementById("f-currency");
+  const keep = currencies.includes(curSel.value) ? curSel.value : currencies[0];
+  curSel.innerHTML = currencies.length
+    ? currencies.map(c => `<option ${c === keep ? "selected" : ""}>${c}</option>`).join("")
+    : `<option value="">Sem receita</option>`;
+  curSel.hidden = currencies.length <= 1;
+
+  renderTiles(rows, prev, period, currencies, curTotals);
+
+  const labels = [];
+  for (let d = from; d <= to; d = addDays(d, weekly ? 7 : 1)) labels.push(weekly ? weekStart(d) : d);
+  if (weekly) labels.push(weekStart(to));
+  const uniq = [...new Set(labels)];
+  const bucket = d => (weekly ? weekStart(d) : d);
+  const visibleStores = Object.keys(STORES).filter(s => !document.getElementById("f-store").value || document.getElementById("f-store").value === s);
+
+  const seriesFor = (metric, currency) => visibleStores.map(s => {
+    const by = Object.fromEntries(uniq.map(l => [l, 0]));
+    for (const r of rows) if (r.store === s && r.metric === metric && (!currency || r.currency === currency)) by[bucket(r.date)] += r.value;
+    return { id: s, name: STORES[s].name, color: STORES[s].color, values: uniq.map(l => by[l]) };
+  });
+
+  const unit = weekly ? "por semana" : "por dia";
+  document.getElementById("dl-title").textContent = `Downloads ${unit}`;
+  const dl = seriesFor("downloads");
+  legend("dl-legend", dl);
+  chart("dl-chart", { kind: "line", labels: uniq, series: dl, fmt: v => nf.format(Math.round(v)), weekly });
+
+  document.getElementById("rev-title").textContent = keep ? `Receita ${unit} (${keep})` : "Receita";
+  if (keep) {
+    const rev = seriesFor("receita", keep);
+    legend("rev-legend", rev);
+    chart("rev-chart", { kind: "bar", labels: uniq, series: rev, fmt: v => money(v, keep), weekly });
+  } else {
+    legend("rev-legend", []);
+    document.getElementById("rev-chart").innerHTML = `<div class="empty">Sem receita no período.</div>`;
+  }
+
+  renderTable(rows, currencies);
+}
+
+function delta(cur, prev) {
+  if (!HAS_PREV || !prev) return `<span class="note">sem histórico do período anterior</span>`;
+  const p = ((cur - prev) / prev) * 100;
+  const cls = p >= 0 ? "delta-up" : "delta-down";
+  return `<span class="${cls}">${p >= 0 ? "▲" : "▼"} ${nf.format(Math.abs(Math.round(p)))}%</span> <span class="note">vs. período anterior</span>`;
+}
+
+function renderTiles(rows, prev, period, currencies, curTotals) {
+  const dl = sum(rows.filter(r => r.metric === "downloads"));
+  const dlPrev = sum(prev.filter(r => r.metric === "downloads"));
+  const lastDay = sum(rows.filter(r => r.metric === "downloads" && r.date === LAST));
+  const main = currencies[0];
+  const revPrev = main ? sum(prev.filter(r => r.metric === "receita" && r.currency === main)) : 0;
+  const others = currencies.slice(1).map(c => money(curTotals[c], c)).join(" · ");
+
+  document.getElementById("tiles").innerHTML = `
+    <div class="card tile">
+      <div class="label">Downloads no período</div>
+      <div class="value">${nf.format(Math.round(dl))}</div>
+      <div class="note">${delta(dl, dlPrev)}</div>
+    </div>
+    <div class="card tile">
+      <div class="label">Downloads em ${fmtDay(LAST)}</div>
+      <div class="value">${nf.format(Math.round(lastDay))}</div>
+      <div class="note">média de ${nf.format(Math.round(dl / period))}/dia no período</div>
+    </div>
+    <div class="card tile">
+      <div class="label">Receita no período${main ? ` (${main})` : ""}</div>
+      <div class="value">${main ? money(curTotals[main], main) : "—"}</div>
+      <div class="note">${main ? delta(curTotals[main], revPrev) : "sem vendas no período"}${others ? `<br>+ ${others}` : ""}</div>
+    </div>`;
+}
+
+function renderTable(rows, currencies) {
+  const by = {};
+  for (const r of rows) {
+    const k = r.store + "|" + r.app;
+    by[k] ??= { store: r.store, app: r.app, dl: 0, rev: {} };
+    if (r.metric === "downloads") by[k].dl += r.value;
+    else by[k].rev[r.currency] = (by[k].rev[r.currency] || 0) + r.value;
+  }
+  const list = Object.values(by).sort((a, b) => b.dl - a.dl);
+  const t = document.getElementById("by-app");
+  if (!list.length) { t.innerHTML = `<tr><td class="empty">Sem dados no período.</td></tr>`; return; }
+  t.innerHTML = `<thead><tr><th>App</th><th>Loja</th><th class="num">Downloads</th>${currencies.map(c => `<th class="num">Receita ${c}</th>`).join("")}</tr></thead><tbody>` +
+    list.map(x => `<tr><td>${esc(x.app)}</td><td><span class="dot" style="background:${STORES[x.store].color}"></span>${STORES[x.store].name}</td>` +
+      `<td class="num">${nf.format(Math.round(x.dl))}</td>` +
+      currencies.map(c => `<td class="num">${x.rev[c] ? money(x.rev[c], c) : "—"}</td>`).join("") + `</tr>`).join("") +
+    `</tbody>`;
+}
+
+function legend(id, series) {
+  document.getElementById(id).innerHTML = series.length > 1
+    ? series.map(s => `<span style="--c:${s.color}">${s.name}</span>`).join("")
+    : "";
+}
+
+// ---------- Gráfico SVG (linha ou barras empilhadas) com tooltip
+function niceMax(v) {
+  if (v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p;
+}
+
+function chart(id, { kind, labels, series, fmt, weekly }) {
+  const host = document.getElementById(id);
+  const W = Math.max(host.clientWidth, 280), H = 240;
+  const direct = kind === "line" && series.length > 1 && W > 480;
+  const m = { t: 10, r: direct ? 88 : 12, b: 26, l: 56 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const n = labels.length;
+  const totals = labels.map((_, i) => kind === "bar" ? series.reduce((t, s) => t + s.values[i], 0) : Math.max(0, ...series.map(s => s.values[i])));
+  const max = niceMax(Math.max(0, ...totals));
+  const x = i => kind === "bar" ? m.l + (i + 0.5) * (iw / n) : m.l + (n === 1 ? iw / 2 : (i * iw) / (n - 1));
+  const y = v => m.t + ih - (v / max) * ih;
+
+  let g = "";
+  for (let k = 0; k <= 4; k++) {
+    const v = (max * k) / 4, yy = y(v);
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${yy}" y2="${yy}" stroke="${k ? "var(--grid)" : "var(--axis)"}" stroke-width="1"/>`;
+    g += `<text x="${m.l - 8}" y="${yy + 4}" text-anchor="end">${esc(compact(v))}</text>`;
+  }
+  const ticks = Math.min(n, Math.max(2, Math.floor(iw / 80)));
+  for (let k = 0; k < ticks; k++) {
+    const i = ticks === 1 ? 0 : Math.round((k * (n - 1)) / (ticks - 1));
+    g += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${fmtDay(labels[i])}</text>`;
+  }
+
+  if (kind === "line") {
+    for (const s of series) {
+      const d = s.values.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+      g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      if (direct) g += `<text class="direct" x="${x(n - 1) + 8}" y="${y(s.values[n - 1]) + 4}">${s.name}</text>`;
+    }
+  } else {
+    const bw = Math.max(1, Math.min(28, iw / n - 2));
+    labels.forEach((_, i) => {
+      let base = 0;
+      const segs = series.filter(s => s.values[i] > 0);
+      segs.forEach((s, j) => {
+        const v = s.values[i];
+        const top = y(base + v), h = y(base) - top - (j ? 2 : 0);
+        const r = j === segs.length - 1 ? Math.min(4, bw / 2, h) : 0;
+        g += barPath(x(i) - bw / 2, top, bw, Math.max(h, 1), r, s.color);
+        base += v;
+      });
+    });
+  }
+
+  g += `<line class="cross" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" stroke="var(--axis)" stroke-width="1" visibility="hidden"/>`;
+  g += `<rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" class="hit"/>`;
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(document.getElementById(id.replace("chart", "title"))?.textContent || "")}">${g}</svg><div class="tip"></div>`;
+
+  const svg = host.querySelector("svg"), tip = host.querySelector(".tip"), cross = host.querySelector(".cross");
+  const move = e => {
+    const rect = svg.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * W;
+    const i = kind === "bar"
+      ? Math.min(n - 1, Math.max(0, Math.floor((px - m.l) / (iw / n))))
+      : Math.min(n - 1, Math.max(0, Math.round(((px - m.l) / iw) * (n - 1))));
+    cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
+    const title = weekly ? `Semana de ${fmtDay(labels[i])}` : fmtDay(labels[i]);
+    tip.innerHTML = `<b>${title}</b>` + series.map(s => `<div><i style="background:${s.color}"></i>${s.name}: ${fmt(s.values[i])}</div>`).join("");
+    tip.style.display = "block";
+    const left = (x(i) / W) * rect.width;
+    tip.style.left = Math.min(Math.max(0, left + 12), rect.width - tip.offsetWidth) + "px";
+    tip.style.top = "8px";
+  };
+  const hit = host.querySelector(".hit");
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerdown", move);
+  hit.addEventListener("pointerleave", () => { tip.style.display = "none"; cross.setAttribute("visibility", "hidden"); });
+}
+
+function barPath(x, y, w, h, r, color) {
+  return `<path d="M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z" fill="${color}"/>`;
+}
+
+function compact(v) {
+  return new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(v);
+}
+</script>
+</body>
+</html>

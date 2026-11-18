@@ -1,0 +1,78 @@
+"""Coleta diária: Apple + Google Play → histórico cifrado → painel HTML.
+
+Configuração por variáveis de ambiente (no GitHub Actions, via Secrets). Ver README.md.
+Uma loja sem variáveis configuradas é simplesmente pulada.
+"""
+
+import json
+import os
+import sys
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+
+from coletor import apple, cofre, google_play, historico, painel
+
+ROOT = Path(__file__).resolve().parent.parent
+HISTORY_PATH = ROOT / "data" / "historico.enc"
+SITE_PATH = ROOT / "site" / "index.html"
+
+
+def window(days_back: int, today: date) -> list[str]:
+    """Os últimos `days_back` dias até ontem, em ISO. Recoletar a janela cobre atrasos e ajustes das lojas."""
+    return [(today - timedelta(days=i)).isoformat() for i in range(days_back, 0, -1)]
+
+
+def _google_credentials(info: dict):
+    from google.oauth2 import service_account
+
+    return service_account.Credentials.from_service_account_info(
+        info, scopes=["https://www.googleapis.com/auth/devstorage.read_only"]
+    )
+
+
+def main() -> int:
+    env = os.environ
+    password = env["PAINEL_SENHA"]
+    days = window(int(env.get("DAYS_BACK") or "7"), date.today())
+
+    records = []
+    replaced: set[tuple[str, str]] = set()
+
+    if env.get("ASC_KEY_ID"):
+        found, covered = apple.collect(
+            env["ASC_KEY_ID"],
+            env["ASC_ISSUER_ID"],
+            env["ASC_PRIVATE_KEY"],
+            env["ASC_VENDOR_NUMBER"],
+            days,
+        )
+        records += found
+        replaced |= {(d, "apple") for d in covered}
+        print(f"Apple: {len(covered)} dia(s) com relatório.")
+    else:
+        print("Apple: pulada (ASC_KEY_ID não configurado).")
+
+    if env.get("GPLAY_BUCKET"):
+        info = json.loads(env["GOOGLE_SERVICE_ACCOUNT_JSON"])
+        packages = [p.strip() for p in env["GPLAY_PACKAGES"].split(",") if p.strip()]
+        found, covered = google_play.collect(
+            _google_credentials(info), info["project_id"], env["GPLAY_BUCKET"], packages, days
+        )
+        records += found
+        replaced |= {(d, "google") for d in covered}
+        print(f"Google: {len(covered)} dia(s) com relatório.")
+    else:
+        print("Google: pulada (GPLAY_BUCKET não configurado).")
+
+    # Logs de repositório público são públicos: só contagens, nunca valores.
+    rows = historico.merge(historico.load(HISTORY_PATH, password), records, replaced)
+    updated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
+    blob = cofre.encrypt(historico.payload(rows, updated_at), password)
+    historico.save(HISTORY_PATH, blob)
+    painel.build(blob, SITE_PATH)
+    print(f"Histórico: {len(rows)} linhas. Painel gerado.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
