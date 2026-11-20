@@ -83,6 +83,10 @@ open -a "Google Chrome" site/index.html
 
 O terminal mostra só contagens (dias com relatório por loja, linhas do histórico), nunca valores.
 
+Falha de rede, HTTP 429 ou erro 5xx da Apple: o coletor espera e tenta de novo (até 5 vezes, de 5 s a 2 min).
+Se uma loja falhar de vez, o que a outra trouxe é salvo mesmo assim, o histórico da que falhou fica
+como estava, e o comando termina com código 1 e um aviso para rodar de novo.
+
 O painel precisa de `https`, `localhost` ou do arquivo aberto direto no Chrome, porque o navegador só
 libera a criptografia (WebCrypto) em contexto seguro. Alternativa:
 `.venv/bin/python -m http.server 8765 --directory site` e abrir `http://localhost:8765`.

@@ -1,10 +1,13 @@
+import gzip
 import io
+import json
 from datetime import date
 
 import pytest
+import requests
 from cryptography.exceptions import InvalidTag
 
-from coletor import apple, cofre, google_play, historico
+from coletor import apple, cofre, google_play, historico, main
 from coletor.main import window
 from coletor.models import Record
 
@@ -92,3 +95,87 @@ def test_cofre_ida_e_volta_e_senha_errada():
 
 def test_window_termina_ontem():
     assert window(3, date(2026, 11, 18)) == ["2026-11-15", "2026-11-16", "2026-11-17"]
+
+
+class FakeResponse:
+    def __init__(self, status_code, content=b""):
+        self.status_code = status_code
+        self.content = content
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(str(self.status_code))
+
+
+def fake_get(outcomes):
+    """requests.get que devolve (ou lança) cada item de `outcomes`, em ordem."""
+    calls = []
+
+    def get(*args, **kwargs):
+        outcome = outcomes[len(calls)]
+        calls.append(outcome)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    return get, calls
+
+
+def test_apple_fetch_day_tenta_de_novo_em_falha_passageira(monkeypatch):
+    get, calls = fake_get([
+        requests.ConnectTimeout("timed out"),
+        FakeResponse(429),
+        FakeResponse(200, gzip.compress(b"ok")),
+    ])
+    monkeypatch.setattr(apple.requests, "get", get)
+    monkeypatch.setattr(apple.time, "sleep", lambda s: None)
+    assert apple.fetch_day("t", "v", "2026-11-17") == "ok"
+    assert len(calls) == 3
+
+
+def test_apple_fetch_day_desiste_depois_das_retentativas(monkeypatch):
+    attempts = len(apple.RETRY_WAITS) + 1
+    get, calls = fake_get([requests.ConnectTimeout("timed out")] * attempts)
+    monkeypatch.setattr(apple.requests, "get", get)
+    monkeypatch.setattr(apple.time, "sleep", lambda s: None)
+    with pytest.raises(requests.ConnectTimeout):
+        apple.fetch_day("t", "v", "2026-11-17")
+    assert len(calls) == attempts
+
+
+def test_apple_fetch_day_nao_repete_404_nem_403(monkeypatch):
+    get, calls = fake_get([FakeResponse(404)])
+    monkeypatch.setattr(apple.requests, "get", get)
+    assert apple.fetch_day("t", "v", "2026-11-17") is None
+    get, calls = fake_get([FakeResponse(403)])
+    monkeypatch.setattr(apple.requests, "get", get)
+    with pytest.raises(requests.HTTPError):
+        apple.fetch_day("t", "v", "2026-11-17")
+    assert len(calls) == 1
+
+
+def test_main_salva_apple_mesmo_com_google_falhando(monkeypatch, tmp_path):
+    env = {
+        "PAINEL_SENHA": "s", "DAYS_BACK": "1",
+        "ASC_KEY_ID": "k", "ASC_ISSUER_ID": "i", "ASC_PRIVATE_KEY": "p", "ASC_VENDOR_NUMBER": "v",
+        "GPLAY_BUCKET": "b", "GPLAY_PACKAGES": "br.app",
+        "GOOGLE_SERVICE_ACCOUNT_JSON": json.dumps({"project_id": "x"}),
+    }
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setattr(main, "HISTORY_PATH", tmp_path / "historico.enc")
+    monkeypatch.setattr(main, "SITE_PATH", tmp_path / "index.html")
+    monkeypatch.setattr(main, "_google_credentials", lambda info: None)
+
+    day = window(1, date.today())[0]
+    monkeypatch.setattr(apple, "collect", lambda *a: ([Record(day, "apple", "A", "downloads", 3)], [day]))
+
+    def google_403(*args):
+        raise RuntimeError("403 sem permissão")
+
+    monkeypatch.setattr(google_play, "collect", google_403)
+
+    assert main.main() == 1
+    rows = historico.load(tmp_path / "historico.enc", "s")
+    assert rows == [[day, "apple", "A", "downloads", 3, ""]]
+    assert (tmp_path / "index.html").exists()

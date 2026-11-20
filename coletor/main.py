@@ -37,30 +37,41 @@ def main() -> int:
 
     records = []
     replaced: set[tuple[str, str]] = set()
+    failed: list[str] = []
+
+    def run(label: str, store: str, collect) -> None:
+        # Uma loja que falha não impede de salvar o que a outra trouxe; o histórico dela fica como estava.
+        nonlocal records, replaced
+        try:
+            found, covered = collect()
+        except Exception as exc:
+            failed.append(label)
+            print(f"{label}: FALHOU, nada dela foi atualizado. {type(exc).__name__}: {str(exc)[:300]}")
+            return
+        records += found
+        replaced |= {(d, store) for d in covered}
+        print(f"{label}: {len(covered)} dia(s) com relatório.")
 
     if env.get("ASC_KEY_ID"):
-        found, covered = apple.collect(
+        run("Apple", "apple", lambda: apple.collect(
             env["ASC_KEY_ID"],
             env["ASC_ISSUER_ID"],
             env["ASC_PRIVATE_KEY"],
             env["ASC_VENDOR_NUMBER"],
             days,
-        )
-        records += found
-        replaced |= {(d, "apple") for d in covered}
-        print(f"Apple: {len(covered)} dia(s) com relatório.")
+        ))
     else:
         print("Apple: pulada (ASC_KEY_ID não configurado).")
 
     if env.get("GPLAY_BUCKET"):
-        info = json.loads(env["GOOGLE_SERVICE_ACCOUNT_JSON"])
-        packages = [p.strip() for p in env["GPLAY_PACKAGES"].split(",") if p.strip()]
-        found, covered = google_play.collect(
-            _google_credentials(info), info["project_id"], env["GPLAY_BUCKET"], packages, days
-        )
-        records += found
-        replaced |= {(d, "google") for d in covered}
-        print(f"Google: {len(covered)} dia(s) com relatório.")
+        def google():
+            info = json.loads(env["GOOGLE_SERVICE_ACCOUNT_JSON"])
+            packages = [p.strip() for p in env["GPLAY_PACKAGES"].split(",") if p.strip()]
+            return google_play.collect(
+                _google_credentials(info), info["project_id"], env["GPLAY_BUCKET"], packages, days
+            )
+
+        run("Google", "google", google)
     else:
         print("Google: pulada (GPLAY_BUCKET não configurado).")
 
@@ -71,6 +82,9 @@ def main() -> int:
     historico.save(HISTORY_PATH, blob)
     painel.build(blob, SITE_PATH)
     print(f"Histórico: {len(rows)} linhas. Painel gerado.")
+    if failed:
+        print(f"Atenção: {', '.join(failed)} falhou; rode de novo para completar.")
+        return 1
     return 0
 
 

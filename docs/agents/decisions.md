@@ -43,7 +43,9 @@ Tomadas com o usuário. Sem data indicada: 2026-11-18.
 | Métricas da v1: downloads e receita | escopo | Notas/reviews e crashes ficaram para depois. |
 | Recoletar os últimos 7 dias a cada execução, substituindo por (data, loja) | histórico | As lojas atrasam e ajustam números. |
 | Receita sem conversão de moeda; Apple = líquido (proceeds), Google = bruto (`Charged`) | métricas | É o que os relatórios diários oferecem. O líquido do Google só sai no earnings mensal. |
-| Logs só com contagens | segurança | Regra mantida da época do Actions; o repositório segue público. |
+| Logs só com contagens | segurança | Regra mantida da época do Actions; o repositório segue público. Mensagens de erro podem incluir o texto da exceção (sem valores coletados). |
+| Retentativa na Apple (rede, 429, 5xx; esperas 5–120 s) e token JWT novo a cada dia (2026-11-20) | coleta | A coleta de 365 dias caiu por timeout de conexão no meio; o token vale só 15 min. |
+| Falha de uma loja não derruba a outra; sai com código 1 (2026-11-20) | coleta | Antes, o 403 do Google e o timeout da Apple descartavam tudo o que já tinha sido baixado. |
 
 ## Ideias registradas (não aprovadas)
 
