@@ -15,6 +15,6 @@ python3.12 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt
 
 Regras específicas:
 - Nunca imprimir valores coletados no terminal/log; só contagens. O repositório é público.
-- Credenciais ficam num arquivo fora do repositório (ver README); nunca lê-lo nem copiá-lo.
+- Credenciais ficam em `credenciais/` (ignorada pelo Git; ver README). Nunca ler, listar conteúdo nem copiar esses arquivos.
 - `data/historico.enc` é gravado pelo coletor; não editar à mão.
 - Mudou o formato cifrado → mudar `coletor/cofre.py` e o `decrypt` de `painel/template.html` juntos.

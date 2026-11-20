@@ -35,7 +35,7 @@ Tomadas com o usuário. Sem data indicada: 2026-11-18.
 |---|---|---|
 | Script em Python, não um MCP | coleta | Rotina diária determinística, sem custo de LLM e sem depender de terceiros. Não há MCP oficial da Apple nem do Google. |
 | ~~Execução no GitHub Actions (cron diário)~~ — substituída em 2026-11-20 | agendamento | — |
-| Coleta manual no Mac, credenciais num arquivo local fora do repositório (2026-11-20) | execução | Tirar as chaves das lojas do GitHub; a conta do Google em uso (Codemagic) pode publicar apps. Agendamento (launchd) fica para depois. |
+| Coleta manual no Mac, credenciais na pasta `credenciais/`, ignorada pelo Git (2026-11-20) | execução | Tirar as chaves das lojas do GitHub; a conta do Google em uso (Codemagic) pode publicar apps. Agendamento (launchd) fica para depois. |
 | Painel em HTML único e autocontido, sem CDN | painel | Abre em qualquer lugar. Foi pedido pelo usuário no lugar do Google Sheets (descartado). |
 | Dados cifrados com senha (PBKDF2-SHA256 600k + AES-256-GCM), decifrados no navegador | painel e histórico | Repositório e Pages são públicos. O histórico fica no próprio repositório (`data/historico.enc`). |
 | ~~Repositório público + GitHub Pages~~ — substituída em 2026-11-20 | hospedagem | — |

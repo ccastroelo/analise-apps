@@ -4,7 +4,7 @@ Um script em Python, rodado **manualmente no Mac**, baixa os **downloads** e a *
 App Store e na Google Play, guarda o histórico **criptografado** em `data/historico.enc` e gera um painel
 HTML (`site/index.html`). O painel pede uma senha e decifra os dados no próprio navegador.
 
-As credenciais das lojas ficam **só no computador**, fora do repositório. Nada roda no GitHub.
+As credenciais das lojas ficam **só no computador**, na pasta `credenciais/` (ignorada pelo Git). Nada roda no GitHub.
 
 ```
 coletor/apple.py        App Store Connect API → relatório SALES diário
@@ -48,18 +48,22 @@ python3.12 -m venv .venv
    **Copiar URI do Cloud Storage** (`gs://pubsite_prod_rev_.../...`). O nome do bucket é o trecho entre
    `gs://` e a primeira `/`.
 
-### 4. Arquivo de credenciais (fora do repositório)
+### 4. Pasta de credenciais (ignorada pelo Git)
 
-Crie um arquivo **fora desta pasta** (ex.: `~/.config/analise-apps/env`) e deixe-o legível só por você
-(`chmod 600`):
+Tudo fica em `credenciais/`, que o `.gitignore` exclui por inteiro: o arquivo `credenciais/env`, a chave
+`.p8` da Apple (`credenciais/chave.p8`) e o JSON da conta de serviço (`credenciais/conta.json`).
+Deixe a pasta legível só por você (`chmod 700 credenciais; chmod 600 credenciais/*`).
+Confira antes de qualquer commit: `git check-ignore credenciais/env` deve imprimir o caminho.
+
+`credenciais/env` (caminhos relativos à raiz do projeto):
 
 ```
 PAINEL_SENHA='senha forte, 4+ palavras aleatórias'
 ASC_KEY_ID='...'
 ASC_ISSUER_ID='...'
 ASC_VENDOR_NUMBER='...'
-ASC_PRIVATE_KEY="$(cat ~/caminho/da/chave.p8)"
-GOOGLE_SERVICE_ACCOUNT_JSON="$(cat ~/caminho/da/conta.json)"
+ASC_PRIVATE_KEY="$(cat credenciais/chave.p8)"
+GOOGLE_SERVICE_ACCOUNT_JSON="$(cat credenciais/conta.json)"
 GPLAY_BUCKET='pubsite_prod_rev_...'
 GPLAY_PACKAGES='br.com.app1,br.com.app2'
 ```
@@ -69,8 +73,10 @@ e rode de novo com `DAYS_BACK=365`.
 
 ## Rodar
 
+Na raiz do projeto:
+
 ```
-set -a; source ~/.config/analise-apps/env; set +a
+set -a; source credenciais/env; set +a
 DAYS_BACK=7 .venv/bin/python -m coletor.main      # 365 na primeira vez
 open -a "Google Chrome" site/index.html
 ```
