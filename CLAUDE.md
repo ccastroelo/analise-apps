@@ -1,6 +1,6 @@
 # analise-apps
 
-Coleta de downloads e receita da App Store e do Google Play, rodada manualmente no Mac → histórico cifrado → painel HTML local com senha.
+Coleta de downloads e receita da App Store e do Google Play, rodada no Mac (launchd diário às 14h, ou à mão) → histórico cifrado → painel HTML com senha (no iCloud Drive).
 
 - Visão geral, configuração e limitações: @README.md
 - Decisões, estado atual e pendências: @docs/agents/decisions.md

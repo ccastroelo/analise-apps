@@ -38,13 +38,14 @@ Tomadas com o usuário. Sem data indicada: 2026-11-18.
 |---|---|---|
 | Script em Python, não um MCP | coleta | Rotina diária determinística, sem custo de LLM e sem depender de terceiros. Não há MCP oficial da Apple nem do Google. |
 | ~~Execução no GitHub Actions (cron diário)~~ — substituída em 2026-11-20 | agendamento | — |
-| Coleta manual no Mac, credenciais na pasta `credenciais/`, ignorada pelo Git (2026-11-20) | execução | Tirar as chaves das lojas do GitHub; a conta do Google em uso (Codemagic) pode publicar apps. Agendamento (launchd) fica para depois. |
+| Coleta no Mac, credenciais na pasta `credenciais/`, ignorada pelo Git (2026-11-20) | execução | Tirar as chaves das lojas do GitHub; a conta do Google em uso (Codemagic) pode publicar apps. Agendamento: ver linha do launchd. |
 | Painel em HTML único e autocontido, sem CDN | painel | Abre em qualquer lugar. Foi pedido pelo usuário no lugar do Google Sheets (descartado). |
 | Dados cifrados com senha (PBKDF2-SHA256 600k + AES-256-GCM), decifrados no navegador | painel e histórico | Repositório e Pages são públicos. O histórico fica no próprio repositório (`data/historico.enc`). |
 | ~~Repositório público + GitHub Pages~~ — substituída em 2026-11-20 | hospedagem | — |
 | Painel só local (`site/index.html` no Chrome), sem Pages (2026-11-20) | hospedagem | Escolha do usuário ao mover a coleta para o Mac. Perde o acesso pelo celular. |
 | Métricas da v1: downloads e receita | escopo | Notas/reviews e crashes ficaram para depois. |
 | Métrica `atualizacoes` (atualizações instaladas) nas duas lojas, com gráfico, cartão e coluna no painel (2026-11-20) | escopo | Pedido do usuário. Apple: tipos 7/7F/7T/F7; Google: `Daily Device Upgrades` ou `Update events` (opcional). Não inclui datas de publicação de versões. |
+| Agendamento diário às 14h pelo launchd (`scripts/coletar.sh` + plist fora do repo), log em `~/Library/Logs/analise-apps.log`, notificação em falha (2026-11-20) | execução | Pedido do usuário. O projeto saiu da Mesa para `~/dev/analise-apps` porque o macOS bloqueia o launchd na Mesa; o usuário preferiu isso a dar Acesso Total ao Disco ao zsh. |
 | `coletor.demo` grava `site/demo.html` (2026-11-20) | painel | `site/` é o painel real no iCloud; a demo não pode sobrescrevê-lo. |
 | Recoletar os últimos 7 dias a cada execução, substituindo por (data, loja) | histórico | As lojas atrasam e ajustam números. |
 | Receita sem conversão de moeda; Apple = líquido (proceeds), Google = bruto (`Charged`) | métricas | É o que os relatórios diários oferecem. O líquido do Google só sai no earnings mensal. |

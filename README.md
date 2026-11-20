@@ -1,6 +1,6 @@
 # Painel das lojas
 
-Um script em Python, rodado **manualmente no Mac**, baixa os **downloads**, as **atualizações** e a **receita** dos apps na
+Um script em Python, rodado **no Mac** (todo dia pelo launchd, ou à mão), baixa os **downloads**, as **atualizações** e a **receita** dos apps na
 App Store e na Google Play, guarda o histórico **criptografado** em `data/historico.enc` e gera um painel
 HTML (`site/index.html`). O painel pede uma senha e decifra os dados no próprio navegador.
 
@@ -105,6 +105,38 @@ como estava, e o comando termina com código 1 e um aviso para rodar de novo.
 O painel precisa de `https`, `localhost` ou do arquivo aberto direto no Chrome, porque o navegador só
 libera a criptografia (WebCrypto) em contexto seguro. Alternativa:
 `.venv/bin/python -m http.server 8765 --directory site` e abrir `http://localhost:8765`.
+
+### Todo dia (launchd)
+
+`scripts/coletar.sh` carrega `credenciais/env`, roda a coleta dos últimos 7 dias, anexa a saída a
+`~/Library/Logs/analise-apps.log` e mostra uma notificação do macOS se algo falhar. O agendamento
+fica **fora do repositório**, em `~/Library/LaunchAgents/com.analise-apps.coleta.plist`, porque tem
+o caminho absoluto do projeto:
+
+```
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.analise-apps.coleta</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/zsh</string><string>CAMINHO/DO/PROJETO/scripts/coletar.sh</string>
+  </array>
+  <key>StartCalendarInterval</key><dict>
+    <key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key><string>CAMINHO/DA/HOME/Library/Logs/analise-apps.log</string>
+  <key>StandardErrorPath</key><string>CAMINHO/DA/HOME/Library/Logs/analise-apps.log</string>
+</dict></plist>
+```
+
+```
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.analise-apps.coleta.plist   # ativar
+launchctl kickstart gui/$(id -u)/com.analise-apps.coleta                                # rodar agora
+launchctl bootout gui/$(id -u)/com.analise-apps.coleta                                  # desativar
+tail ~/Library/Logs/analise-apps.log
+```
+
+Mac dormindo às 14h: roda ao acordar. Desligado: pula o dia (a próxima coleta recoleta 7 dias).
+**O projeto não pode ficar na Mesa, em Documentos ou em Downloads**: o macOS bloqueia o launchd
+nessas pastas (`can't open input file`). A pasta do iCloud Drive funcionou sem permissão extra.
 
 Painel com dados fictícios (senha `demo`): `.venv/bin/python -m coletor.demo` gera `site/demo.html`
 (arquivo separado, para não sobrescrever o painel real).
