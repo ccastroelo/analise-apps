@@ -20,6 +20,8 @@
 - Primeira coleta local com `DAYS_BACK=365`.
 - No GitHub (feito pelo usuário): apagar os secrets, desativar o Pages e, se quiser, apagar as execuções
   antigas do Actions (o log do erro mostra o e-mail da conta de serviço).
+- **Dados expostos:** o commit `b4e7c38` tem `data/historico.enc` cifrado com senha vazia (legível por qualquer um).
+  Pendente decisão do usuário: deixar o repositório privado e/ou reescrever o histórico do Git.
 - Pontos a confirmar na primeira coleta real do Google:
   - nomes das colunas do `installs_*_overview.csv` (o código aceita `Daily User Installs` e `Install events`);
   - valores de `Financial Status` no sales report do Google (hoje só `Charged` é somado);
@@ -46,6 +48,8 @@ Tomadas com o usuário. Sem data indicada: 2026-11-18.
 | Logs só com contagens | segurança | Regra mantida da época do Actions; o repositório segue público. Mensagens de erro podem incluir o texto da exceção (sem valores coletados). |
 | Retentativa na Apple (rede, 429, 5xx; esperas 5–120 s) e token JWT novo a cada dia (2026-11-20) | coleta | A coleta de 365 dias caiu por timeout de conexão no meio; o token vale só 15 min. |
 | Falha de uma loja não derruba a outra; sai com código 1 (2026-11-20) | coleta | Antes, o 403 do Google e o timeout da Apple descartavam tudo o que já tinha sido baixado. |
+| Coletor recusa `PAINEL_SENHA` vazia e confere a senha contra o histórico antes de coletar (2026-11-20) | segurança | O secret nunca foi cadastrado no GitHub; a variável vazia cifrou o histórico com senha vazia e o commit `b4e7c38` (repositório público) abre sem senha (539 linhas da Apple). |
+| Painel em `site/`, que pode ser atalho para o iCloud Drive (2026-11-20) | painel | Abrir de outro PC sem servidor. Não abre no iPhone. |
 
 ## Ideias registradas (não aprovadas)
 

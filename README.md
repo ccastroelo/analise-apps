@@ -68,8 +68,23 @@ GPLAY_BUCKET='pubsite_prod_rev_...'
 GPLAY_PACKAGES='br.com.app1,br.com.app2'
 ```
 
+A senha é a de `PAINEL_SENHA`: a primeira coleta cria `data/historico.enc` cifrado com ela, e o painel
+pede a mesma. O coletor recusa senha vazia e confere a senha contra o histórico **antes** de coletar.
 Se a senha mudar, o histórico antigo não abre mais com a nova. Para trocar, apague `data/historico.enc`
 e rode de novo com `DAYS_BACK=365`.
+
+### 5. Painel no iCloud (opcional)
+
+Para abrir o painel de outro computador, `site/` pode ser um atalho para uma pasta do iCloud Drive
+(o `.gitignore` ignora `site` como pasta ou atalho):
+
+```
+mkdir -p ~/Library/Mobile\ Documents/com~apple~CloudDocs/painel-lojas
+ln -s ~/Library/Mobile\ Documents/com~apple~CloudDocs/painel-lojas site
+```
+
+No outro PC, baixe `painel-lojas/index.html` do iCloud e abra no Chrome. No iPhone não funciona: o app
+Arquivos mostra HTML sem rodar JavaScript.
 
 ## Rodar
 

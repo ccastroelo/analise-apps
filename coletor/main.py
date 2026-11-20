@@ -1,6 +1,6 @@
 """Coleta diária: Apple + Google Play → histórico cifrado → painel HTML.
 
-Configuração por variáveis de ambiente (no GitHub Actions, via Secrets). Ver README.md.
+Configuração por variáveis de ambiente (carregadas de credenciais/env). Ver README.md.
 Uma loja sem variáveis configuradas é simplesmente pulada.
 """
 
@@ -9,6 +9,8 @@ import os
 import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+
+from cryptography.exceptions import InvalidTag
 
 from coletor import apple, cofre, google_play, historico, painel
 
@@ -32,7 +34,17 @@ def _google_credentials(info: dict):
 
 def main() -> int:
     env = os.environ
-    password = env["PAINEL_SENHA"]
+    password = env.get("PAINEL_SENHA", "")
+    if not password.strip():
+        # Sem esta checagem, uma variável vazia cifra tudo com senha vazia: qualquer um abre o arquivo.
+        print("PAINEL_SENHA vazia ou ausente: defina uma senha forte em credenciais/env.")
+        return 2
+    # Confere a senha antes de coletar: senha errada falharia só no fim, depois de minutos de download.
+    try:
+        existing = historico.load(HISTORY_PATH, password)
+    except InvalidTag:
+        print(f"PAINEL_SENHA não abre {HISTORY_PATH.name}: a senha é outra.")
+        return 2
     days = window(int(env.get("DAYS_BACK") or "7"), date.today())
 
     records = []
@@ -76,7 +88,7 @@ def main() -> int:
         print("Google: pulada (GPLAY_BUCKET não configurado).")
 
     # Logs de repositório público são públicos: só contagens, nunca valores.
-    rows = historico.merge(historico.load(HISTORY_PATH, password), records, replaced)
+    rows = historico.merge(existing, records, replaced)
     updated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
     blob = cofre.encrypt(historico.payload(rows, updated_at), password)
     historico.save(HISTORY_PATH, blob)

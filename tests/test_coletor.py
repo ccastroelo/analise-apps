@@ -179,3 +179,29 @@ def test_main_salva_apple_mesmo_com_google_falhando(monkeypatch, tmp_path):
     rows = historico.load(tmp_path / "historico.enc", "s")
     assert rows == [[day, "apple", "A", "downloads", 3, ""]]
     assert (tmp_path / "index.html").exists()
+
+
+def _collect_must_not_run(*args):
+    raise AssertionError("não devia coletar")
+
+
+@pytest.mark.parametrize("password", ["", "   "])
+def test_main_recusa_senha_vazia_antes_de_coletar(monkeypatch, tmp_path, password):
+    monkeypatch.setenv("PAINEL_SENHA", password)
+    monkeypatch.setenv("ASC_KEY_ID", "k")
+    monkeypatch.setattr(main, "HISTORY_PATH", tmp_path / "historico.enc")
+    monkeypatch.setattr(main, "SITE_PATH", tmp_path / "index.html")
+    monkeypatch.setattr(apple, "collect", _collect_must_not_run)
+    assert main.main() == 2
+    assert not (tmp_path / "historico.enc").exists()
+
+
+def test_main_recusa_senha_errada_antes_de_coletar(monkeypatch, tmp_path):
+    path = tmp_path / "historico.enc"
+    historico.save(path, cofre.encrypt(historico.payload([], "x"), "senha-certa"))
+    monkeypatch.setenv("PAINEL_SENHA", "senha-errada")
+    monkeypatch.setenv("ASC_KEY_ID", "k")
+    monkeypatch.setattr(main, "HISTORY_PATH", path)
+    monkeypatch.setattr(main, "SITE_PATH", tmp_path / "index.html")
+    monkeypatch.setattr(apple, "collect", _collect_must_not_run)
+    assert main.main() == 2

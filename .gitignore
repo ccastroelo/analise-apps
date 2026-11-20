@@ -5,8 +5,8 @@
 *service-account*.json
 credenciais/
 
-# Painel é gerado localmente pelo coletor
-site/
+# Painel é gerado localmente pelo coletor (pode ser pasta ou atalho para o iCloud)
+/site
 
 __pycache__/
 .pytest_cache/
