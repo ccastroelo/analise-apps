@@ -15,6 +15,8 @@ SALES_URL = "https://api.appstoreconnect.apple.com/v1/salesReports"
 
 # Product Type Identifier de primeira instalação (iPhone/universal, iPad, Mac, iOS app no Mac).
 DOWNLOAD_TYPES = {"1", "1F", "1T", "F1", "1E", "1EP", "1EU"}
+# Product Type Identifier de atualização instalada (iPhone, universal, iPad, Mac).
+UPDATE_TYPES = {"7", "7F", "7T", "F7"}
 
 # Falhas passageiras (rede, limite de requisições, erro do servidor): espera e tenta de novo.
 RETRY_WAITS = (5, 15, 30, 60, 120)  # segundos antes de cada nova tentativa
@@ -80,21 +82,26 @@ def parse_sales(tsv: str, day: str) -> list[Record]:
     }
 
     downloads: dict[str, float] = defaultdict(float)
+    updates: dict[str, float] = defaultdict(float)
     revenue: dict[tuple[str, str], float] = defaultdict(float)
 
     for row in rows:
         app_sku = (row.get("Parent Identifier") or "").strip() or row["SKU"]
         app = titles.get(app_sku, app_sku)
         units = float(row["Units"] or 0)
+        product_type = row["Product Type Identifier"].strip()
 
-        if row["Product Type Identifier"].strip() in DOWNLOAD_TYPES:
+        if product_type in DOWNLOAD_TYPES:
             downloads[app] += units
+        elif product_type in UPDATE_TYPES:
+            updates[app] += units
 
         proceeds = units * float(row["Developer Proceeds"] or 0)
         if proceeds:
             revenue[(app, row["Currency of Proceeds"])] += proceeds
 
     records = [Record(day, "apple", app, "downloads", value) for app, value in downloads.items()]
+    records += [Record(day, "apple", app, "atualizacoes", value) for app, value in updates.items()]
     records += [
         Record(day, "apple", app, "receita", round(value, 2), currency)
         for (app, currency), value in revenue.items()

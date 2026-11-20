@@ -173,6 +173,13 @@
       </div>
     </div>
 
+    <div class="card" style="margin-bottom:12px">
+      <h2 id="up-title">Atualizações</h2>
+      <div class="legend" id="up-legend"></div>
+      <div class="chart" id="up-chart"></div>
+      <div class="sub" style="margin-top:8px">Atualizações instaladas de versões já baixadas (não contam como downloads).</div>
+    </div>
+
     <div class="card">
       <h2>Por app no período</h2>
       <div class="table-wrap"><table id="by-app"></table></div>
@@ -336,6 +343,11 @@ function render() {
   legend("dl-legend", dl);
   chart("dl-chart", { kind: "line", labels: uniq, series: dl, fmt: v => nf.format(Math.round(v)), weekly });
 
+  document.getElementById("up-title").textContent = `Atualizações ${unit}`;
+  const up = seriesFor("atualizacoes");
+  legend("up-legend", up);
+  chart("up-chart", { kind: "line", labels: uniq, series: up, fmt: v => nf.format(Math.round(v)), weekly });
+
   document.getElementById("rev-title").textContent = keep ? `Receita ${unit} (${keep})` : "Receita";
   if (keep) {
     const rev = seriesFor("receita", keep);
@@ -360,6 +372,8 @@ function renderTiles(rows, prev, period, currencies, curTotals) {
   const dl = sum(rows.filter(r => r.metric === "downloads"));
   const dlPrev = sum(prev.filter(r => r.metric === "downloads"));
   const lastDay = sum(rows.filter(r => r.metric === "downloads" && r.date === LAST));
+  const up = sum(rows.filter(r => r.metric === "atualizacoes"));
+  const upPrev = sum(prev.filter(r => r.metric === "atualizacoes"));
   const main = currencies[0];
   const revPrev = main ? sum(prev.filter(r => r.metric === "receita" && r.currency === main)) : 0;
   const others = currencies.slice(1).map(c => money(curTotals[c], c)).join(" · ");
@@ -376,6 +390,11 @@ function renderTiles(rows, prev, period, currencies, curTotals) {
       <div class="note">média de ${nf.format(Math.round(dl / period))}/dia no período</div>
     </div>
     <div class="card tile">
+      <div class="label">Atualizações no período</div>
+      <div class="value">${nf.format(Math.round(up))}</div>
+      <div class="note">${delta(up, upPrev)}</div>
+    </div>
+    <div class="card tile">
       <div class="label">Receita no período${main ? ` (${main})` : ""}</div>
       <div class="value">${main ? money(curTotals[main], main) : "—"}</div>
       <div class="note">${main ? delta(curTotals[main], revPrev) : "sem vendas no período"}${others ? `<br>+ ${others}` : ""}</div>
@@ -386,16 +405,17 @@ function renderTable(rows, currencies) {
   const by = {};
   for (const r of rows) {
     const k = r.store + "|" + r.app;
-    by[k] ??= { store: r.store, app: r.app, dl: 0, rev: {} };
+    by[k] ??= { store: r.store, app: r.app, dl: 0, up: 0, rev: {} };
     if (r.metric === "downloads") by[k].dl += r.value;
-    else by[k].rev[r.currency] = (by[k].rev[r.currency] || 0) + r.value;
+    else if (r.metric === "atualizacoes") by[k].up += r.value;
+    else if (r.metric === "receita") by[k].rev[r.currency] = (by[k].rev[r.currency] || 0) + r.value;
   }
   const list = Object.values(by).sort((a, b) => b.dl - a.dl);
   const t = document.getElementById("by-app");
   if (!list.length) { t.innerHTML = `<tr><td class="empty">Sem dados no período.</td></tr>`; return; }
-  t.innerHTML = `<thead><tr><th>App</th><th>Loja</th><th class="num">Downloads</th>${currencies.map(c => `<th class="num">Receita ${c}</th>`).join("")}</tr></thead><tbody>` +
+  t.innerHTML = `<thead><tr><th>App</th><th>Loja</th><th class="num">Downloads</th><th class="num">Atualizações</th>${currencies.map(c => `<th class="num">Receita ${c}</th>`).join("")}</tr></thead><tbody>` +
     list.map(x => `<tr><td>${esc(x.app)}</td><td><span class="dot" style="background:${STORES[x.store].color}"></span>${STORES[x.store].name}</td>` +
-      `<td class="num">${nf.format(Math.round(x.dl))}</td>` +
+      `<td class="num">${nf.format(Math.round(x.dl))}</td><td class="num">${nf.format(Math.round(x.up))}</td>` +
       currencies.map(c => `<td class="num">${x.rev[c] ? money(x.rev[c], c) : "—"}</td>`).join("") + `</tr>`).join("") +
     `</tbody>`;
 }

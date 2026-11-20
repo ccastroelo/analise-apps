@@ -12,6 +12,7 @@ from coletor.models import Record
 
 # Nomes de coluna mudaram ao longo dos anos; usa a primeira que existir.
 INSTALL_COLUMNS = ("Daily User Installs", "Install events")
+UPDATE_COLUMNS = ("Daily Device Upgrades", "Update events")
 
 
 def decode_report(raw: bytes) -> str:
@@ -23,12 +24,19 @@ def decode_report(raw: bytes) -> str:
 
 def parse_installs(text: str, package: str, days: set[str]) -> list[Record]:
     reader = csv.DictReader(io.StringIO(text))
-    column = next(c for c in INSTALL_COLUMNS if c in (reader.fieldnames or []))
-    return [
-        Record(row["Date"], "google", package, "downloads", float(row[column] or 0))
-        for row in reader
-        if row["Date"] in days
-    ]
+    fields = reader.fieldnames or []
+    column = next(c for c in INSTALL_COLUMNS if c in fields)
+    # Atualizações são opcionais: se o arquivo não tiver a coluna, só os downloads são lidos.
+    update_column = next((c for c in UPDATE_COLUMNS if c in fields), None)
+    records = []
+    for row in reader:
+        if row["Date"] not in days:
+            continue
+        records.append(Record(row["Date"], "google", package, "downloads", float(row[column] or 0)))
+        if update_column:
+            value = float(row[update_column] or 0)
+            records.append(Record(row["Date"], "google", package, "atualizacoes", value))
+    return records
 
 
 def parse_sales(text: str, days: set[str]) -> list[Record]:

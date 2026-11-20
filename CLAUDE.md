@@ -10,7 +10,7 @@ Modo: **projeto novo** (Python 3.12, sem framework). Comandos:
 ```
 python3.12 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python -m pytest -q
-.venv/bin/python -m coletor.demo   # painel com dados fictícios, senha "demo"
+.venv/bin/python -m coletor.demo   # site/demo.html com dados fictícios, senha "demo"
 ```
 
 Regras específicas:

@@ -1,6 +1,6 @@
 # Painel das lojas
 
-Um script em Python, rodado **manualmente no Mac**, baixa os **downloads** e a **receita** dos apps na
+Um script em Python, rodado **manualmente no Mac**, baixa os **downloads**, as **atualizações** e a **receita** dos apps na
 App Store e na Google Play, guarda o histórico **criptografado** em `data/historico.enc` e gera um painel
 HTML (`site/index.html`). O painel pede uma senha e decifra os dados no próprio navegador.
 
@@ -106,12 +106,16 @@ O painel precisa de `https`, `localhost` ou do arquivo aberto direto no Chrome, 
 libera a criptografia (WebCrypto) em contexto seguro. Alternativa:
 `.venv/bin/python -m http.server 8765 --directory site` e abrir `http://localhost:8765`.
 
-Painel com dados fictícios (senha `demo`): `.venv/bin/python -m coletor.demo`.
+Painel com dados fictícios (senha `demo`): `.venv/bin/python -m coletor.demo` gera `site/demo.html`
+(arquivo separado, para não sobrescrever o painel real).
 
 ## O que os números significam (limitações conhecidas)
 
 - **Downloads Apple**: primeiras instalações (tipos `1`, `1F`, `1T`, `F1`, `1E*`). Não inclui atualizações nem re-downloads.
 - **Downloads Google**: coluna `Daily User Installs` (ou `Install events`, nos relatórios mais novos) do `installs_*_overview.csv`.
+- **Atualizações Apple**: tipos `7`, `7F`, `7T`, `F7` do mesmo relatório SALES (atualização instalada, sem custo).
+- **Atualizações Google**: coluna `Daily Device Upgrades` (ou `Update events`) do mesmo `installs_*_overview.csv`.
+  É por aparelho, não por usuário; se o arquivo não tiver nenhuma das duas, só os downloads são lidos.
 - **Receita Apple**: *proceeds* (líquido para você), na moeda de pagamento.
 - **Receita Google**: valor **bruto** cobrado do cliente (`Charged`), na moeda da venda. Reembolsos não são descontados.
   O líquido só sai no relatório de *earnings* mensal, que não é diário.

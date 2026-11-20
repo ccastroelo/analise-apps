@@ -30,7 +30,8 @@ def test_apple_parse_sales_conta_downloads_e_receita_por_app():
         APPLE_HEADER,
         apple_row("app.um", "App Um", "1", 10, 0, "BRL"),
         apple_row("app.um", "App Um", "1F", 2, 0, "BRL"),
-        apple_row("app.um", "App Um", "7", 50, 0, "BRL"),  # atualização: não conta
+        apple_row("app.um", "App Um", "7", 50, 0, "BRL"),  # atualização: não é download
+        apple_row("app.um", "App Um", "7T", 5, 0, "BRL"),
         apple_row("app.um.pro", "Pro", "IA1", 3, 4.5, "BRL", parent="app.um"),
         apple_row("app.um.pro", "Pro", "IA1", 1, 0.99, "USD", parent="app.um"),
     ])
@@ -39,7 +40,8 @@ def test_apple_parse_sales_conta_downloads_e_receita_por_app():
     assert Record("2026-11-17", "apple", "App Um", "downloads", 12) in records
     assert Record("2026-11-17", "apple", "App Um", "receita", 13.5, "BRL") in records
     assert Record("2026-11-17", "apple", "App Um", "receita", 0.99, "USD") in records
-    assert len(records) == 3
+    assert Record("2026-11-17", "apple", "App Um", "atualizacoes", 55) in records
+    assert len(records) == 4
 
 
 def test_google_parse_installs_utf16_filtra_dias():
@@ -50,13 +52,23 @@ def test_google_parse_installs_utf16_filtra_dias():
     )
     raw = csv_text.encode("utf-16")
     records = google_play.parse_installs(google_play.decode_report(raw), "br.app", {"2026-11-16"})
-    assert records == [Record("2026-11-16", "google", "br.app", "downloads", 6.0)]
+    assert records == [Record("2026-11-16", "google", "br.app", "downloads", 6.0)]  # sem coluna de atualização
 
 
 def test_google_parse_installs_aceita_coluna_nova():
     csv_text = "Date,Package Name,Install events\n2026-11-16,br.app,9\n"
     records = google_play.parse_installs(csv_text, "br.app", {"2026-11-16"})
     assert records[0].value == 9.0
+
+
+@pytest.mark.parametrize("column", ["Daily Device Upgrades", "Update events"])
+def test_google_parse_installs_le_atualizacoes(column):
+    csv_text = f"Date,Package Name,Daily User Installs,{column}\n2026-11-16,br.app,4,30\n"
+    records = google_play.parse_installs(csv_text, "br.app", {"2026-11-16"})
+    assert records == [
+        Record("2026-11-16", "google", "br.app", "downloads", 4.0),
+        Record("2026-11-16", "google", "br.app", "atualizacoes", 30.0),
+    ]
 
 
 def test_google_parse_sales_soma_so_cobrados():

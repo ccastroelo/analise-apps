@@ -25,7 +25,8 @@
 - Pontos a confirmar na primeira coleta real do Google:
   - nomes das colunas do `installs_*_overview.csv` (o código aceita `Daily User Installs` e `Install events`);
   - valores de `Financial Status` no sales report do Google (hoje só `Charged` é somado);
-  - formato de data de `Order Charged Date` (o código assume ISO `yyyy-mm-dd`).
+  - formato de data de `Order Charged Date` (o código assume ISO `yyyy-mm-dd`);
+  - nome da coluna de atualizações no `installs_*_overview.csv` (`Daily Device Upgrades` ou `Update events`).
 - Histórico desde 2010: pedido pelo usuário, sem decisão. A Apple só guarda 365 dias de relatório diário
   (anuais por 10 anos); o alcance do bucket do Google ainda não foi verificado.
 
@@ -43,6 +44,8 @@ Tomadas com o usuário. Sem data indicada: 2026-11-18.
 | ~~Repositório público + GitHub Pages~~ — substituída em 2026-11-20 | hospedagem | — |
 | Painel só local (`site/index.html` no Chrome), sem Pages (2026-11-20) | hospedagem | Escolha do usuário ao mover a coleta para o Mac. Perde o acesso pelo celular. |
 | Métricas da v1: downloads e receita | escopo | Notas/reviews e crashes ficaram para depois. |
+| Métrica `atualizacoes` (atualizações instaladas) nas duas lojas, com gráfico, cartão e coluna no painel (2026-11-20) | escopo | Pedido do usuário. Apple: tipos 7/7F/7T/F7; Google: `Daily Device Upgrades` ou `Update events` (opcional). Não inclui datas de publicação de versões. |
+| `coletor.demo` grava `site/demo.html` (2026-11-20) | painel | `site/` é o painel real no iCloud; a demo não pode sobrescrevê-lo. |
 | Recoletar os últimos 7 dias a cada execução, substituindo por (data, loja) | histórico | As lojas atrasam e ajustam números. |
 | Receita sem conversão de moeda; Apple = líquido (proceeds), Google = bruto (`Charged`) | métricas | É o que os relatórios diários oferecem. O líquido do Google só sai no earnings mensal. |
 | Logs só com contagens | segurança | Regra mantida da época do Actions; o repositório segue público. Mensagens de erro podem incluir o texto da exceção (sem valores coletados). |
