@@ -1,8 +1,10 @@
 # Painel das lojas
 
-Todo dia, um GitHub Action baixa os **downloads** e a **receita** dos apps na App Store e na Google Play,
-guarda o histórico **criptografado** no repositório e publica um painel HTML no GitHub Pages.
-O painel pede uma senha e decifra os dados no próprio navegador: abre no celular ou em qualquer PC.
+Um script em Python, rodado **manualmente no Mac**, baixa os **downloads** e a **receita** dos apps na
+App Store e na Google Play, guarda o histórico **criptografado** em `data/historico.enc` e gera um painel
+HTML (`site/index.html`). O painel pede uma senha e decifra os dados no próprio navegador.
+
+As credenciais das lojas ficam **só no computador**, fora do repositório. Nada roda no GitHub.
 
 ```
 coletor/apple.py        App Store Connect API → relatório SALES diário
@@ -11,22 +13,22 @@ coletor/cofre.py        PBKDF2-SHA256 + AES-256-GCM (mesmo formato do WebCrypto)
 coletor/historico.py    data/historico.enc — junta os dias recoletados
 coletor/painel.py       painel/template.html + dados cifrados → site/index.html
 coletor/main.py         orquestra; configurado só por variáveis de ambiente
-.github/workflows/coleta-diaria.yml   07:00 (Brasília), todo dia
 ```
 
-A cada execução, os **últimos 7 dias** são recoletados e substituem o que havia, porque as lojas
-atrasam e ajustam números. Uma loja sem variáveis configuradas é pulada.
+A cada execução, os **últimos `DAYS_BACK` dias** (padrão 7) são recoletados e substituem o que havia,
+porque as lojas atrasam e ajustam números. Uma loja sem variáveis configuradas é pulada.
 
 ## Configuração (uma vez)
 
-### 1. Repositório
+### 1. Ambiente Python
 
-Crie um repositório no GitHub e envie esta pasta. Pode ser **público**: o GitHub Pages é gratuito nesse
-caso, e o histórico e o painel só têm dados cifrados. Os logs do Action mostram apenas contagens.
-Mesmo assim, use uma **senha forte** (4+ palavras aleatórias), porque o arquivo cifrado fica público
-e uma senha fraca pode ser quebrada por força bruta.
+Requer Python **3.12** (no Mac, o `python3` do sistema é 3.9 e não serve; use o do Homebrew):
 
-Em **Settings → Pages → Source**, escolha **GitHub Actions**.
+```
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pytest -q
+```
 
 ### 2. Apple (App Store Connect)
 
@@ -38,55 +40,48 @@ Em **Settings → Pages → Source**, escolha **GitHub Actions**.
 ### 3. Google Play
 
 1. Google Cloud Console → crie (ou use) um projeto → **IAM → Contas de serviço** → criar → **Chaves → JSON**.
-2. Play Console → **Usuários e permissões → Convidar** o e-mail da conta de serviço com
-   **Ver informações do app e baixar relatórios em massa** e **Ver dados financeiros**.
-   A permissão pode levar até 24 h para valer no bucket.
-3. **Bucket**: Play Console → **Baixar relatórios → Estatísticas** → copiar o URI do Cloud Storage
-   (`gs://pubsite_prod_XXXX/...`). O nome do bucket é a parte `pubsite_prod_XXXX`.
+2. Play Console → **Usuários e permissões → Convidar** o e-mail da conta de serviço com as permissões
+   **da conta** (não só de um app) **Ver informações do app e baixar relatórios em massa** e
+   **Ver dados financeiros**. A permissão pode levar até 24 h para valer no bucket; até lá o Storage
+   responde `403 ... storage.objects.get`.
+3. **Bucket**: na tela da conta (fora de qualquer app), **Baixar relatórios → Estatísticas** →
+   **Copiar URI do Cloud Storage** (`gs://pubsite_prod_rev_.../...`). O nome do bucket é o trecho entre
+   `gs://` e a primeira `/`.
 
-### 4. Secrets do repositório
+### 4. Arquivo de credenciais (fora do repositório)
 
-Em **Settings → Secrets and variables → Actions**:
-
-| Secret | Valor |
-|---|---|
-| `PAINEL_SENHA` | a senha do painel |
-| `ASC_KEY_ID` | Key ID da Apple |
-| `ASC_ISSUER_ID` | Issuer ID da Apple |
-| `ASC_PRIVATE_KEY` | conteúdo inteiro do `.p8` (com as linhas BEGIN/END) |
-| `ASC_VENDOR_NUMBER` | vendor number |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | conteúdo inteiro do JSON da conta de serviço |
-| `GPLAY_BUCKET` | `pubsite_prod_XXXX` |
-| `GPLAY_PACKAGES` | pacotes separados por vírgula: `br.com.app1,br.com.app2` |
-
-Com o GitHub CLI, os arquivos podem ser enviados sem abrir o conteúdo:
+Crie um arquivo **fora desta pasta** (ex.: `~/.config/analise-apps/env`) e deixe-o legível só por você
+(`chmod 600`):
 
 ```
-gh secret set ASC_PRIVATE_KEY < caminho/da/chave.p8
-gh secret set GOOGLE_SERVICE_ACCOUNT_JSON < caminho/da/conta.json
+PAINEL_SENHA='senha forte, 4+ palavras aleatórias'
+ASC_KEY_ID='...'
+ASC_ISSUER_ID='...'
+ASC_VENDOR_NUMBER='...'
+ASC_PRIVATE_KEY="$(cat ~/caminho/da/chave.p8)"
+GOOGLE_SERVICE_ACCOUNT_JSON="$(cat ~/caminho/da/conta.json)"
+GPLAY_BUCKET='pubsite_prod_rev_...'
+GPLAY_PACKAGES='br.com.app1,br.com.app2'
 ```
-
-### 5. Primeira carga
-
-**Actions → Coleta diária das lojas → Run workflow** com `days_back = 365` para trazer o histórico.
-Depois disso, ele roda sozinho todo dia. O link do painel aparece no resumo da execução
-(`https://<usuario>.github.io/<repo>/`).
 
 Se a senha mudar, o histórico antigo não abre mais com a nova. Para trocar, apague `data/historico.enc`
-e rode de novo com `days_back = 365`.
+e rode de novo com `DAYS_BACK=365`.
 
-## Rodar localmente
+## Rodar
 
 ```
-python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt   # no Mac: .venv/bin/python
-.venv/Scripts/python -m pytest -q
-.venv/Scripts/python -m coletor.demo     # site/index.html com dados fictícios, senha "demo"
-python -m http.server 8765 --directory site
+set -a; source ~/.config/analise-apps/env; set +a
+DAYS_BACK=7 .venv/bin/python -m coletor.main      # 365 na primeira vez
+open -a "Google Chrome" site/index.html
 ```
+
+O terminal mostra só contagens (dias com relatório por loja, linhas do histórico), nunca valores.
 
 O painel precisa de `https`, `localhost` ou do arquivo aberto direto no Chrome, porque o navegador só
-libera a criptografia (WebCrypto) em contexto seguro.
+libera a criptografia (WebCrypto) em contexto seguro. Alternativa:
+`.venv/bin/python -m http.server 8765 --directory site` e abrir `http://localhost:8765`.
+
+Painel com dados fictícios (senha `demo`): `.venv/bin/python -m coletor.demo`.
 
 ## O que os números significam (limitações conhecidas)
 

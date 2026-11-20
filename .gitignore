@@ -5,7 +5,7 @@
 *service-account*.json
 credenciais/
 
-# Painel é gerado e publicado pelo Action
+# Painel é gerado localmente pelo coletor
 site/
 
 __pycache__/

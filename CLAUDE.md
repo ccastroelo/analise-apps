@@ -1,6 +1,6 @@
 # analise-apps
 
-Coleta diária de downloads e receita da App Store e do Google Play (GitHub Actions) → histórico cifrado → painel HTML com senha no GitHub Pages.
+Coleta de downloads e receita da App Store e do Google Play, rodada manualmente no Mac → histórico cifrado → painel HTML local com senha.
 
 - Visão geral, configuração e limitações: @README.md
 - Decisões, estado atual e pendências: @docs/agents/decisions.md
@@ -8,12 +8,13 @@ Coleta diária de downloads e receita da App Store e do Google Play (GitHub Acti
 Modo: **projeto novo** (Python 3.12, sem framework). Comandos:
 
 ```
-python -m venv .venv && <venv>/python -m pip install -r requirements.txt
-<venv>/python -m pytest -q
-<venv>/python -m coletor.demo   # painel com dados fictícios, senha "demo"
+python3.12 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pytest -q
+.venv/bin/python -m coletor.demo   # painel com dados fictícios, senha "demo"
 ```
 
 Regras específicas:
-- Nunca imprimir valores coletados em log; o repositório é público.
-- `data/historico.enc` é gravado pelo Action; não editar à mão.
+- Nunca imprimir valores coletados no terminal/log; só contagens. O repositório é público.
+- Credenciais ficam num arquivo fora do repositório (ver README); nunca lê-lo nem copiá-lo.
+- `data/historico.enc` é gravado pelo coletor; não editar à mão.
 - Mudou o formato cifrado → mudar `coletor/cofre.py` e o `decrypt` de `painel/template.html` juntos.
